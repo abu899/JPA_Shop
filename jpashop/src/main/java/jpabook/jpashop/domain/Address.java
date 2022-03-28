@@ -1,13 +1,13 @@
 package jpabook.jpashop.domain;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 
 import javax.persistence.Embeddable;
 
 @Embeddable
 @Getter
-@RequiredArgsConstructor
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Address {
 
     private String city;

@@ -17,6 +17,8 @@ public class ItemRepository {
         if(item.getId() == null) {
             em.persist(item);
         } else {
+            // 실제론 itemService.updateItem()과 같은 메커니즘으로 동작한다
+            // 하지만 데이터가 일부분만 들어가있다면 null값이 들어갈 위험이 있어서 사용을 자제해야함
             em.merge(item);
         }
     }
