@@ -18,6 +18,7 @@ public class Delivery {
     private Order order;
 
     @Embedded
+    @Setter
     private Address address;
 
     @Enumerated(EnumType.STRING)
