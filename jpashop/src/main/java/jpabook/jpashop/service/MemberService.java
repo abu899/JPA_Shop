@@ -19,9 +19,10 @@ public class MemberService {
 
     //회원 가입
     @Transactional
-    public void join(Member member) {
+    public Long join(Member member) {
         validateDuplicateMember(member);
         memberRepository.save(member);
+        return member.getId();
     }
 
     public Member findMemberById(Long id) {
@@ -39,5 +40,11 @@ public class MemberService {
         if(!members.isEmpty()){
             throw new IllegalStateException("이미 존재하는 회원입니다");
         }
+    }
+
+    @Transactional
+    public void update(Long id, String name) {
+        Member member = memberRepository.findOne(id);
+        member.setName(name);
     }
 }
