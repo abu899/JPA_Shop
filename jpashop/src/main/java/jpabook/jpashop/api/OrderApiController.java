@@ -34,7 +34,7 @@ public class OrderApiController {
     private final OrderQueryRepository orderQueryRepository;
 
     /**
-     * 엔티티 직접 노출
+     * V1 : 엔티티 직접 노출
      */
     @GetMapping("/api/v1/orders")
     public List<Order> ordersV1() {
@@ -55,6 +55,7 @@ public class OrderApiController {
     }
 
     /**
+     * V2 : 엔티티 조회후 DTO로 변환
      * 쿼리가 어마어마하게 많이 나가게 된다..
      */
     @GetMapping("/api/v2/orders")
@@ -67,11 +68,13 @@ public class OrderApiController {
     }
 
     /**
-     * join을 하면서 DB입장에서 1:N 관계에서는 N개의 갯수만큼 데이터가 늘어난다
+     * V3 : fetch 조인으로 쿼리수 최적화
+     *
+     * join을 하면서 DB입장에서 1:N 관계(collection)에서는 N개의 갯수만큼 데이터가 늘어난다
      * 그 때 필요한게 distinct!
      * 하지만, 페이징이 불가능하다!
      *
-     * 한방 쿼리가 나가지만 페이징의 기준이 orders가 아닌 orderitem이 되어버린다
+     * 한방 쿼리가 나가지만 기준이 orders가 아닌 orderitem이 되어버린다
      * 즉 중복데이터가 많아진다
      */
     @GetMapping("/api/v3/orders")
@@ -84,11 +87,14 @@ public class OrderApiController {
     }
 
     /**
-     * XXToOne 관계에 있는 것들만 fetch join으로 가져온다
-     * orderItems는 어떻게 해야할까?
+     * V3.1 : 컬렉션 페이징과 한계 극복
+     * XXToOne 관계에 있는 것들만 fetch join으로 가져오고 collection은 지연로딩으로 둔다
+     * orderItems(collection)는 어떻게 해야할까?
+     *
      * default_batch_fetch_size 또는 @BatchSize를 통해 In Query를 통해 한번에 가져온다
      * 데이터가 전송량이 줄어들지만, 네트워크을 더 많이 사용하기는 한다!(trade-off 존재)
      * 또한 페이징이 가능해진다
+     *
      * 즉, ToOne관계에서는 fetch join으로 쿼리 수를 줄이고 나머지는 fetch size를 조정하자!
      */
     @GetMapping("/api/v3.1/orders")
@@ -100,11 +106,27 @@ public class OrderApiController {
                 .collect(toList());
     }
 
+    /**
+     * DTO 방식의 선택지
+     * 쿼리가 1번 실행된다고 V6가 항상 좋은 방법은 아니다.
+     * V4는 코드가 단순하며 유지보수가 쉽고, 특정 주문 한건 조회라면 이 방식으로도 성능이 충분하다.
+     * V5는 여러 주문을 조회 할 시 사용해야하며, V4 사용 시 1 + N의 문제가 발생한다.(= default_batch_fetch_size)
+     * V6는 완전히 다른 방식이며, 쿼리 한번으로 최적화되어 좋아보이지만, Order를 기준으로 페이징이 불가능하다.
+     * 실무에서는 페이징 처리가 필요한 경우가 발생하고, 중복된 데이터들로 인해 실제 성능차이가 미비할 수 있다.
+     */
+
+    /**
+     * V4 : JPA에서 DTO를 직접 조회
+     */
     @GetMapping("/api/v4/orders")
     public List<OrderQueryDto> orderV4() {
         return orderQueryRepository.findOrderQueryDtos();
     }
 
+    /**
+     * V5 : 컬렉션 조회 최적화
+     * IN 구문을 활용해서 메모리에 미리 조회해서 최적화
+     */
     @GetMapping("/api/v5/orders")
     public List<OrderQueryDto> orderV5() {
         return orderQueryRepository.findAllByDtos_opt();
@@ -112,6 +134,8 @@ public class OrderApiController {
 
 
     /**
+     * V6 : 플랫 데이터 최적화
+     * JOIN 결과를 그대로 조회 후 어플리케이션에서 원하는 모양으로 직접 변환
      * 모든 DTO의 데이터를 하나의 DTO로 합치고 쿼리를 한번에 진행.
      * 중복된 데이터가 존재하게 된다
      */
@@ -127,6 +151,19 @@ public class OrderApiController {
                         e.getKey().getOrderStatus(), e.getKey().getAddress(), e.getValue()))
                 .collect(toList());
     }
+
+    /**
+     * 권장 순서
+     * 1. 엔티티 조회 방식으로 우선 접근
+     *  1. fetch join으로 쿼리 수를 최적화
+     *  2. 컬렉션 최적화
+     *      1. 페이징이 필요하다
+     *          - hibernate.default_batch_fetch_size, @BatchSize로 최적화
+     *      2. 페이징이 필요없다
+     *          - fetch join 사용
+     * 2. 엔티티 조회 방식으로 안되면 DTO 조회 방식 사용
+     * 3. DTO 조회 방식으로 해결이 안되면 NativeSQL or 스프링 JdbcTemplate
+     */
 
     @Getter
     static class OrderDto {
