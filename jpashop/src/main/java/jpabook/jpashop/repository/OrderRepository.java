@@ -2,13 +2,12 @@ package jpabook.jpashop.repository;
 
 import jpabook.jpashop.domain.Member;
 import jpabook.jpashop.domain.Order;
+import jpabook.jpashop.repository.order.simplequery.SimpleOrderQueryDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import javax.persistence.EntityManager;
-import javax.persistence.OrderColumn;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.*;
 import java.util.ArrayList;
@@ -101,7 +100,7 @@ public class OrderRepository {
     // API spec이 repository에 들어온 상황
     public List<SimpleOrderQueryDto> findOrderDtos() {
         return em.createQuery(
-                        "select new jpabook.jpashop.repository.SimpleOrderQueryDto(o.id, m.name, o.orderDate, o.status, d.address)" +
+                        "select new jpabook.jpashop.repository.order.simplequery.SimpleOrderQueryDto(o.id, m.name, o.orderDate, o.status, d.address)" +
                                 " from Order o " +
                                 "join fetch o.member m " +
                                 "join fetch  o.delivery d", SimpleOrderQueryDto.class)
@@ -113,7 +112,7 @@ public class OrderRepository {
                 "select distinct o from Order o " +
                         "join fetch o.member m " +
                         "join fetch o.delivery d " +
-                        "join fetch o.orderItems oi " +
+                        "join fetch o.orderItems oi " + // ToOne 관계가 아니다
                         "join fetch oi.item i", Order.class)
                 .getResultList();
     }
