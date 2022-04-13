@@ -26,7 +26,7 @@ public class MemberService {
     }
 
     public Member findMemberById(Long id) {
-        return memberRepository.findOne(id);
+        return memberRepository.findById(id).get();
     }
 
     //회원 전체 조회
@@ -44,7 +44,7 @@ public class MemberService {
 
     @Transactional
     public void update(Long id, String name) {
-        Member member = memberRepository.findOne(id);
+        Member member = memberRepository.findById(id).get();
         member.setName(name);
     }
 }
